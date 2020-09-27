@@ -1,4 +1,7 @@
 'use strict';
+
+import passwordGenerator from 'password-generator';
+
 var User = require('../config/db');
 
 module.exports = new class UserRepository {
@@ -12,7 +15,14 @@ module.exports = new class UserRepository {
     }
 
     create(user) {
-        return User.create(user);
+
+        const createdUser = {
+            name: user.name,
+            email: user.email,
+            password: passwordGenerator(15, false)
+        }
+
+        return User.create(createdUser);
     }
 
     update(id, user) {
