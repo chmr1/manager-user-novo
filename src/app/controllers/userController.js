@@ -2,13 +2,28 @@
 
 import Queue from '../lib/Queue';
 
+var userSendMail = require('../config/db');
 const UserRepository = require('../repositories/userRepository');
 
+var redis = require('redis');
+var client = redis.createClient();
+
 exports.get = (req, res, next) => {
-    UserRepository.getAll()
-        .then((user) => {
-            res.status(200).send(user);
-        }).catch(err => res.status(500).send(err))
+    client.get('allusers', function (err, reply) {
+        if (reply) {
+            console.log('redis');
+            res.send(reply)
+        } else {
+            console.log('db');
+
+            UserRepository.getAll()
+                .then((user) => {
+                    client.set('allusers', JSON.stringify(user));
+                    client.expire('allusers', 20);
+                    res.status(200).send(user);
+                }).catch(err => res.status(500).send(err))
+        }
+    });
 };
 
 exports.getById = (req, res, next) => {
@@ -22,7 +37,7 @@ exports.post = (req, res, next) => {
     const p = req.body;
     UserRepository.create(p)
         .then((user) => {
-            //await Queue.add('RegistrationMail', { user });
+            Queue.add('RegistrationMail', { user })
             res.status(200).send(user);
         }).catch(err => res.status(500).send(err))
 };
